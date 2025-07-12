@@ -1,28 +1,67 @@
 require "test_helper"
 
 class QuestionsControllerTest < ActionDispatch::IntegrationTest
+  def setup
+    @survey = surveys(:one)
+    @question = questions(:one)
+  end
+
   test "should get new" do
-    get questions_new_url
+    get new_survey_question_url(@survey)
     assert_response :success
   end
 
-  test "should get create" do
-    get questions_create_url
-    assert_response :success
+  test "should create question" do
+    assert_difference("Question.count") do
+      post survey_questions_url(@survey), params: { 
+        question: { 
+          content: "Test question",
+          question_type: "text",
+          position: 1
+        } 
+      }
+    end
+
+    assert_redirected_to survey_url(@survey)
+  end
+
+  test "should create question with role" do
+    assert_difference("Question.count") do
+      post survey_questions_url(@survey), params: { 
+        question: { 
+          content: "What is your experience with Kubernetes?",
+          question_type: "long_text",
+          position: 2,
+          role: "site_reliability_engineer"
+        } 
+      }
+    end
+
+    assert_redirected_to survey_url(@survey)
+    
+    question = Question.last
+    assert_equal "site_reliability_engineer", question.role
   end
 
   test "should get edit" do
-    get questions_edit_url
+    get edit_survey_question_url(@survey, @question)
     assert_response :success
   end
 
-  test "should get update" do
-    get questions_update_url
-    assert_response :success
+  test "should update question" do
+    patch survey_question_url(@survey, @question), params: { 
+      question: { 
+        content: "Updated content"
+      } 
+    }
+    assert_redirected_to survey_url(@survey)
   end
 
-  test "should get destroy" do
-    get questions_destroy_url
-    assert_response :success
+  test "should destroy question" do
+    assert_difference("Question.count", -1) do
+      delete survey_question_url(@survey, @question)
+    end
+
+    assert_redirected_to survey_url(@survey)
   end
 end

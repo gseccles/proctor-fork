@@ -42,6 +42,23 @@
     </p>
   </div>
 
+  <div>
+    <%= form.label :role, "Visible to Role", class: "block text-sm font-medium text-gray-700" %>
+    <div class="mt-1">
+      <%= form.select :role,
+          [], # Will be populated by JavaScript
+          { include_blank: 'All Roles' },
+          class: "shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md",
+          data: { 
+            controller: "role-select",
+            role_select_current_value: question.role || ""
+          } %>
+    </div>
+    <p class="mt-2 text-sm text-gray-500">
+      Select which role can see this question. Leave blank to show to all roles.
+    </p>
+  </div>
+
   <div id="options-field" class="<%= ['multiple_choice', 'checkbox'].include?(question.question_type) ? '' : 'hidden' %>" data-question-form-target="optionsField">
     <%= form.label :options, "Options (one per line)", class: "block text-sm font-medium text-gray-700" %>
     <div class="mt-1">

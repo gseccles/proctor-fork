@@ -8,6 +8,9 @@ class Question < ApplicationRecord
   # Define question types
   QUESTION_TYPES = ['text', 'long_text', 'multiple_choice', 'checkbox', 'rating'].freeze
   
+  # Validate role is in the allowed list if present
+  validates :role, inclusion: { in: Role::TYPES }, allow_nil: true
+
   # Ensure position is maintained within a survey
   acts_as_list scope: :survey
   
