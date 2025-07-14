@@ -18,4 +18,7 @@ Rails.application.routes.draw do
   
   # Route for creating responses
   resources :responses, only: [:create]
+
+  # Route for fetching roles
+  resources :roles, only: [:index]
 end

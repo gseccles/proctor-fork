@@ -8,6 +8,12 @@ class Question < ApplicationRecord
   # Define question types
   QUESTION_TYPES = ['text', 'long_text', 'multiple_choice', 'checkbox', 'rating'].freeze
   
+  # Convert empty role strings to nil before validation
+  before_validation :normalize_role
+  
+  # Validate role is in the allowed list if present
+  validates :role, inclusion: { in: Role::TYPES }, allow_nil: true
+
   # Ensure position is maintained within a survey
   acts_as_list scope: :survey
   
@@ -18,6 +24,10 @@ class Question < ApplicationRecord
   validate :validate_options_for_question_type
   
   private
+  
+  def normalize_role
+    self.role = nil if role.blank?
+  end
   
   def validate_options_for_question_type
     if ['multiple_choice', 'checkbox'].include?(question_type) && (options.nil? || options.empty?)

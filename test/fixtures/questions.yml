@@ -5,6 +5,7 @@ one:
   content: MyText
   question_type: MyString
   position: 1
+  role: "software_engineer"
 
 two:
   survey: two
