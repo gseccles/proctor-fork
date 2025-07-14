@@ -39,7 +39,16 @@ class SurveysController < ApplicationController
   end
   
   def take
-    @questions = @survey.questions.order(:position)
+    if params[:role].present?
+      @questions = @survey.questions.where('role = ? OR role IS NULL', params[:role]).order(:position)
+    else
+      @questions = []
+    end
+
+    respond_to do |format|
+      format.html
+      format.json { render json: { questions: @questions } }
+    end
   end
   
   def submit

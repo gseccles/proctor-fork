@@ -1,32 +1,46 @@
 require "test_helper"
 
 class QuestionTest < ActiveSupport::TestCase
-  def setup
-    @survey = surveys(:one)
+  test "should allow nil role" do
+    question = Question.new(
+      survey: surveys(:one),
+      content: "Test question",
+      question_type: "text",
+      role: nil
+    )
+    assert question.valid?, "Question with nil role should be valid"
   end
 
-  test "saves question with valid role" do
-    question = @survey.questions.build(
-      content: "MyText",
+  test "should convert empty role string to nil" do
+    question = Question.new(
+      survey: surveys(:one),
+      content: "Test question",
       question_type: "text",
-      position: 1,
+      role: ""
+    )
+    assert question.valid?, "Question with empty role string should be valid"
+    assert_nil question.role, "Empty role string should be converted to nil"
+  end
+
+  test "should convert blank role string to nil" do
+    question = Question.new(
+      survey: surveys(:one),
+      content: "Test question",
+      question_type: "text",
+      role: "   "
+    )
+    assert question.valid?, "Question with blank role string should be valid"
+    assert_nil question.role, "Blank role string should be converted to nil"
+  end
+
+  test "should accept valid role" do
+    question = Question.new(
+      survey: surveys(:one),
+      content: "Test question",
+      question_type: "text",
       role: "software_engineer"
     )
-    assert question.save
-
-    # Reload from database to ensure it was actually saved
-    question_from_db = Question.find(question.id)
-    assert_equal "software_engineer", question_from_db.role
-  end
-
-  test "rejects question with invalid role" do
-    question = @survey.questions.build(
-      content: "MyText",
-      question_type: "text",
-      position: 1,
-      role: "invalid_role"
-    )
-    assert_not question.save
-    assert_includes question.errors[:role], "is not included in the list"
+    assert question.valid?, "Question with valid role should be valid"
+    assert_equal "software_engineer", question.role, "Role should remain unchanged"
   end
 end

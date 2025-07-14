@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 
 const TextQuestion = ({ question, onChange }) => {
@@ -96,17 +96,66 @@ const RatingQuestion = ({ question, onChange }) => {
 };
 
 const TakeSurvey = (props) => {
-  const { survey, questions } = props;
+  const { survey } = props;
   const [responses, setResponses] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState([]);
   const [submitted, setSubmitted] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('');
+  const [roles, setRoles] = useState([]);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleInputChange = (questionId, value) => {
-    setResponses({
-      ...responses,
-      [questionId]: value
-    });
+  // Fetch roles on mount
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const response = await fetch('/roles');
+        if (!response.ok) {
+          throw new Error('Failed to fetch roles');
+        }
+        const rolesData = await response.json();
+        setRoles(rolesData);
+      } catch (error) {
+        console.error('Error fetching roles:', error);
+        setErrors(['Failed to load roles. Please try again.']);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoles();
+  }, []);
+
+  // Fetch questions when role changes
+  const handleRoleChange = async (event) => {
+    const newRole = event.target.value;
+    setSelectedRole(newRole);
+    setResponses({});
+    setQuestions([]);
+    
+    if (!newRole) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/surveys/${survey.id}/take?role=${encodeURIComponent(newRole)}`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch questions');
+      }
+      
+      const data = await response.json();
+      setQuestions(data.questions || []);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      setErrors(['Failed to load questions. Please try again.']);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -127,7 +176,7 @@ const TakeSurvey = (props) => {
     // Format response data
     const formattedResponses = Object.keys(responses).map(questionId => ({
       question_id: questionId,
-      content: responses[questionId]
+      value: responses[questionId]
     }));
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
@@ -160,6 +209,13 @@ const TakeSurvey = (props) => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleInputChange = (questionId, value) => {
+    setResponses({
+      ...responses,
+      [questionId]: value
+    });
   };
 
   const renderQuestion = (question) => {
@@ -339,47 +395,82 @@ const TakeSurvey = (props) => {
     );
   }
 
-  return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">{survey.title}</h1>
-      <p className="mb-6">{survey.description}</p>
-      
-      {errors.length > 0 && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <ul className="text-sm text-red-700">
-                {errors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit}>
-        {questions.map(question => (
-          <div key={question.id} className="mb-6 p-4 bg-white shadow rounded">
-            {renderQuestion(question)}
-          </div>
+  if (loading && !selectedRole) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    );
+  }
+
+  if (errors.length > 0) {
+    return (
+      <div className="bg-red-50 p-4 rounded-md">
+        {errors.map((error, index) => (
+          <p key={index} className="text-red-600">{error}</p>
         ))}
-        
-        <div className="mt-6">
-          <button
-            type="submit"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            disabled={submitting}
-          >
-            {submitting ? 'Submitting...' : 'Submit Response'}
-          </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-lg shadow">
+        <label htmlFor="role-select" className="block text-sm font-medium text-gray-700 mb-2">
+          Select Your Role
+        </label>
+        <select
+          id="role-select"
+          value={selectedRole}
+          onChange={handleRoleChange}
+          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+          disabled={loading}
+        >
+          <option value="">Please select a role</option>
+          {roles.map(role => (
+            <option key={role.id} value={role.id}>
+              {role.name}
+            </option>
+          ))}
+        </select>
+        <p className="mt-2 text-sm text-gray-500">
+          Please select your role to see relevant questions.
+        </p>
+      </div>
+
+      {loading && selectedRole ? (
+        <div className="text-center py-4">
+          <p className="text-gray-600">Loading questions...</p>
         </div>
-      </form>
+      ) : selectedRole && (
+        <form onSubmit={handleSubmit}>
+          {questions.length > 0 ? (
+            <>
+              {questions.map(question => (
+                <div key={question.id} className="mb-6 p-4 bg-white shadow rounded">
+                  {renderQuestion(question)}
+                </div>
+              ))}
+              
+              <div className="mt-6">
+                <button
+                  type="submit"
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Submitting...' : 'Submit Response'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="bg-yellow-50 p-4 rounded-md">
+              <p className="text-yellow-700">
+                There are no questions available for the selected role. Please select a different role or a different survey.
+              </p>
+            </div>
+          )}
+        </form>
+      )}
     </div>
   );
 };
@@ -389,7 +480,6 @@ const initializeTakeSurvey = () => {
   const container = document.getElementById('take-survey-container');
   if (container && !container.hasAttribute('data-react-initialized')) {
     const surveyData = JSON.parse(container.dataset.survey || '{}');
-    const questionsData = JSON.parse(container.dataset.questions || '[]');
     
     // Mark as initialized to prevent double initialization
     container.setAttribute('data-react-initialized', 'true');
@@ -398,7 +488,6 @@ const initializeTakeSurvey = () => {
     root.render(
       <TakeSurvey 
         survey={surveyData} 
-        questions={questionsData}
       />
     );
   }
