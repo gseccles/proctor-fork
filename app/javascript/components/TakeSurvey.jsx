@@ -182,17 +182,14 @@ const TakeSurvey = (props) => {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     
     try {
-      const response = await fetch(`/surveys/${survey.id}/responses`, {
+      const response = await fetch(`/surveys/${survey.id}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken
         },
         body: JSON.stringify({
-          response: {
-            survey_id: survey.id,
-            question_responses_attributes: formattedResponses
-          }
+          responses: formattedResponses
         })
       });
 
@@ -423,7 +420,7 @@ const TakeSurvey = (props) => {
           id="role-select"
           value={selectedRole}
           onChange={handleRoleChange}
-          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+          className="mt-1 block w-full pl-3 pr-10 py-2 text-base shadow-sm border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
           disabled={loading}
         >
           <option value="">Please select a role</option>
